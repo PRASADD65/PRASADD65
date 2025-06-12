@@ -30,3 +30,9 @@ variable "github_repo_url" {
   type        = string
   default     = "https://github.com/techeazy-consulting/techeazy-devops.git" # Add your GitHub URL here
 }
+
+variable "key_name" {
+  description = "Name of the AWS Key Pair to SSH into the instance"
+  type        = string
+}
+
