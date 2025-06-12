@@ -4,7 +4,6 @@ resource "aws_instance" "app_instance" {
   key_name      = var.key_name
   subnet_id     = module.vpc.public_subnets[0]
   depends_on    = [
-    aws_key_pair.my_key,
     module.vpc,
     aws_security_group.web_sg
   ]
@@ -15,12 +14,4 @@ resource "aws_instance" "app_instance" {
   tags = {
     Name = "${var.stage}-${var.instance_name}"
   }
-}
-
-resource "aws_autoscaling_schedule" "shutdown_schedule" {
-  scheduled_action_name = "shutdown-instance"
-  min_size              = 0
-  max_size              = 0
-  desired_capacity      = 0
-  recurrence            = "*/15 * * * *" # Cron expression for shutdown every 15 minutes
 }
