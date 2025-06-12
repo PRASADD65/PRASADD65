@@ -15,12 +15,12 @@ output "private_subnet_ids" {
 
 output "internet_gateway_id" {
   description = "ID of the Internet Gateway"
-  value       = aws_internet_gateway.igw.id
+  value       = module.vpc.igw_id
 }
 
-output "route_table_id" {
-  description = "ID of the public route table"
-  value       = aws_route_table.public.id
+output "route_table_ids" {
+  description = "IDs of the public route tables"
+  value       = module.vpc.public_route_table_ids
 }
 
 output "security_group_id" {
