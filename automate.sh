@@ -1,80 +1,52 @@
 #!/bin/bash
 
-# -------------------------------
-# Automate EC2 Setup & Deployment
-# -------------------------------
+# Log everything for future debugging
+exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
-# Variables passed from Terraform/template
-STAGE="${STAGE:-dev}"                         # Default to dev if not passed
-REPO_URL="${https://github.com/techeazy-consulting/techeazy-devops.git}"  # Default GitHub repo if not passed
+echo "==========================="
+echo "🚀 Starting EC2 Bootstrap..."
+echo "==========================="
 
-echo "=== Stage: $STAGE"
-echo "=== Repo: $REPO_URL"
-
-# Update and install dependencies
+# Update packages
 apt update -y
-apt install -y wget curl unzip git gnupg software-properties-common
 
-# -------------------------------
 # Install Java 21
-# -------------------------------
-echo "Installing Java 21..."
-mkdir -p /opt/jdk
-cd /opt/jdk
-wget https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.tar.gz
-tar -xzf jdk-21_linux-x64_bin.tar.gz
-export JAVA_HOME=/opt/jdk/jdk-21.0.7
-export PATH=$JAVA_HOME/bin:$PATH
+echo "📦 Installing Java 21..."
+wget https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb
+apt install -y ./jdk-21_linux-x64_bin.deb
+java -version
 
-echo "Java Version: $(java --version)"
+# Install Git
+echo "📦 Installing Git..."
+apt install -y git
 
-# -------------------------------
-# Install Node.js & npm (LTS)
-# -------------------------------
-echo "Installing Node.js..."
+# Install Node.js and npm (via NodeSource)
+echo "📦 Installing Node.js and npm..."
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
 apt install -y nodejs
-echo "Node Version: $(node -v)"
-echo "NPM Version: $(npm -v)"
+node -v
+npm -v
 
-# -------------------------------
-# Clone Git Repo
-# -------------------------------
-cd /home/ubuntu || cd /root
-git clone "$REPO_URL" app
-cd app || exit 1
+# Clone the repo
+echo "📂 Cloning repository..."
+git clone https://github.com/techeazy-consulting/techeazy-devops.git /opt/app
+cd /opt/app
 
-# -------------------------------
-# Copy Stage Config
-# -------------------------------
-CONFIG_FILE="configs/${STAGE,,}_config.json"  # lowercase stage
-if [ ! -f "$CONFIG_FILE" ]; then
-  echo "❌ Config file $CONFIG_FILE not found!"
-  exit 1
-fi
+# Inject stage-based config
+echo "⚙️ Applying stage config file..."
+cp "${config_file}" /opt/app/config.json
 
-cp "$CONFIG_FILE" config.json
-echo "✅ Using config: $CONFIG_FILE"
-
-# -------------------------------
-# Build and Run App
-# -------------------------------
-
-# Java build
+# Build Java app using Maven Wrapper
+echo "⚙️ Building the Java project..."
 ./mvnw clean package
 
-# Run app on port 80
-JAR_FILE=$(find target -name "*.jar" | head -n 1)
+# Run the Java app (from target dir)
+echo "🚀 Running the app on port 80..."
+nohup java -jar target/*.jar --server.port=80 &
 
-if [ -z "$JAR_FILE" ]; then
-  echo "❌ No .jar file found in target/"
-  exit 1
-fi
+# Schedule shutdown in 1 hour
+echo "⏳ Scheduling instance shutdown in 1 hour..."
+apt install -y at
+echo "shutdown -h now" | at now + 60 minutes
 
-# Make sure port 80 is not blocked
-fuser -k 80/tcp || true
-
-echo "✅ Starting app..."
-nohup java -jar "$JAR_FILE" --server.port=80 > /var/log/app.log 2>&1 &
-
-echo "🎉 App is now running on port 80!"
+echo "✅ Bootstrap completed."
