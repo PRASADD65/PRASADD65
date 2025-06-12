@@ -42,3 +42,9 @@ output "instance_private_ip" {
   description = "Private IP address of the EC2 instance"
   value       = aws_instance.app_instance.private_ip
 }
+
+output "selected_config_file" {
+  description = "The configuration file selected based on the stage variable"
+  value       = local.config_file_path
+}
+
