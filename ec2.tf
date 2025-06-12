@@ -1,5 +1,5 @@
 resource "aws_instance" "app_instance" {
-  ami                         = "ami-0a89b8a7f72b9cb5d" # Use your region-specific AMI
+  ami                         = "ami-07891c5a242abf4bc"
   instance_type               = var.instance_type
   key_name                    = var.key_name
   subnet_id                   = module.vpc.public_subnets[0]
@@ -7,9 +7,9 @@ resource "aws_instance" "app_instance" {
 
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 
-  user_data = templatefile("${path.module}/automate.sh.tmpl", {
-    config_file = file("${path.module}/configs/dev_config.json")
-  })
+ user_data = templatefile("${path.module}/automate.sh.tmpl", {
+  config_file = file("${path.module}/configs/${var.stage}_config")
+ })
 
   depends_on = [
     module.vpc,
