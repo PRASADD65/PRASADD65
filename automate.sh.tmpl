@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# Exit on any error
+set -e
+
+# Update package lists
+echo "Updating package lists..."
+apt update -y
+
+# 1. Install Java 21 using apt
+echo "Installing Java 21..."
+apt install -y openjdk-21-jdk
+
+# Set JAVA_HOME system-wide
+echo "export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))" >> /etc/profile
+echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> /etc/profile
+export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
+export PATH=$JAVA_HOME/bin:$PATH
+
+# Verify Java
+java -version
+
+# 2. Install Node.js and npm
+echo "Installing Node.js and npm..."
+apt install -y nodejs npm
+
+# Verify Node and npm
+node -v
+npm -v
+
+# 3. Clone GitHub repo
+echo "Cloning GitHub repository..."
+cd /root
+git clone https://github.com/techeazy-consulting/techeazy-devops.git
+
+cd techeazy-devops
+
+# 4. Create package.json if not present
+if [ ! -f "package.json" ]; then
+  echo "Creating package.json..."
+  npm init -y
+fi
+
+# 5. Install npm dependencies
+if [ -f "package.json" ]; then
+  echo "Installing npm dependencies..."
+  npm install
+fi
+
+# 6. Build Java project
+echo "Building Java project..."
+chmod +x mvnw
+./mvnw clean package
+
+# 7. Save the config file content to a file
+echo "Saving config file..."
+cat <<EOF > /root/app_config
+${config_file}
+EOF
+
+# 8. Run the Spring Boot app on port 80
+echo "Running Spring Boot application on port 80..."
+nohup java -Xmx256m -jar target/*.jar --server.port=80 > /var/log/app.log 2>&1 &
