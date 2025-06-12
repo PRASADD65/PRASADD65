@@ -17,7 +17,7 @@ variable "instance_name" {
 variable "vpc_name" {
   description = "Name of the VPC"
   type        = string
-  name        = "VPC"
+  default        = "VPC"
 }
 
 variable "az_name" {
