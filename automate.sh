@@ -1,52 +1,35 @@
 #!/bin/bash
 
-# Log everything for future debugging
-exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-
-echo "==========================="
-echo "🚀 Starting EC2 Bootstrap..."
-echo "==========================="
-
-# Update packages
-apt update -y
-
-# Install Java 21
-echo "📦 Installing Java 21..."
-wget https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb
-apt install -y ./jdk-21_linux-x64_bin.deb
-java -version
-
-# Install Git
 echo "📦 Installing Git..."
-apt install -y git
+apt-get update -y && apt-get install git -y
 
-# Install Node.js and npm (via NodeSource)
 echo "📦 Installing Node.js and npm..."
+apt-get install -y curl gnupg ca-certificates apt-transport-https
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt install -y nodejs
-node -v
-npm -v
+apt-get install -y nodejs
 
-# Clone the repo
+echo "📦 Installing Java..."
+wget -q https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb
+apt install -y ./jdk-21_linux-x64_bin.deb
+
 echo "📂 Cloning repository..."
-git clone https://github.com/techeazy-consulting/techeazy-devops.git /opt/app
+git clone https://github.com/PRASADD65/devops-java-sample-app.git /opt/app
+
+echo "⚙️ Writing config.json..."
+cat <<EOF > /opt/app/config.json
+${config_file}
+EOF
+
+echo "⚙️ Building Java project..."
 cd /opt/app
+chmod +x mvnw || true
+./mvnw package || exit 1
 
-# Inject stage-based config
-echo "⚙️ Applying stage config file..."
-cp "${config_file}" /opt/app/config.json
+echo "🚀 Running app on port 80..."
+nohup java -jar target/*.jar > /opt/app/app.log 2>&1 &
 
-# Build Java app using Maven Wrapper
-echo "⚙️ Building the Java project..."
-./mvnw clean package
-
-# Run the Java app (from target dir)
-echo "🚀 Running the app on port 80..."
-nohup java -jar target/*.jar --server.port=80 &
-
-# Schedule shutdown in 1 hour
-echo "⏳ Scheduling instance shutdown in 1 hour..."
-apt install -y at
+echo "⏳ Scheduling shutdown in 1 hour..."
+apt-get install -y at
 echo "shutdown -h now" | at now + 60 minutes
 
 echo "✅ Bootstrap completed."
