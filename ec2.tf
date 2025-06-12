@@ -1,5 +1,5 @@
 resource "aws_instance" "app_instance" {
-  ami           = "ami-0c55b159cbfafe1f0" # Example AMI ID
+  ami           = "ami-0a89b8a7f72b9cb5d" # Example AMI ID
   instance_type = var.instance_type
   key_name      = var.key_name
   subnet_id     = module.vpc.public_subnets[0]
