@@ -11,34 +11,14 @@ resource "aws_instance" "app_instance" {
   # Attach the IAM Instance Profile to this EC2 instance
   iam_instance_profile = aws_iam_instance_profile.app_instance_profile.name
 
-  # Assemble the user_data script:
-  # 1. Set HOME variable explicitly at the very beginning.
-  # 2. Inject the config file content and source it.
-  # 3. Append the main automation script (automate.sh).
-  user_data = <<-EOF
-    #!/bin/bash
-
-    # IMPORTANT FIX: Ensure HOME environment variable is set as early as possible
-    export HOME=/root
-
-    # This section injects the content of your config file and sources it.
-    CONFIG_FILE_PATH="/tmp/app_config.env"
-    cat << 'APP_CONFIG_EOF' > "$CONFIG_FILE_PATH"
-    ${file("${path.module}/configs/${var.stage}_config")}
-    APP_CONFIG_EOF
-
-    if [ -f "$CONFIG_FILE_PATH" ]; then
-        echo "Sourcing configuration from $CONFIG_FILE_PATH"
-        source "$CONFIG_FILE_PATH"
-    else
-        echo "Error: Configuration file $CONFIG_FILE_PATH not found. This should not happen if Terraform passes it correctly. Exiting."
-        exit 1
-    fi
-    echo ""
-
-    # Now, append the content of the main automate.sh script.
-    ${file("${path.module}/automate.sh")}
-    EOF
+  # Use the templatefile function to render the user data script
+  user_data = templatefile("${path.module}/user_data.sh.tpl", {
+    repo_url             = var.repo_url
+    s3_bucket_name       = var.s3_bucket_name
+    shutdown_time        = var.shutdown_time
+    automate_sh_content  = file("${path.module}/automate.sh") # Pass the content of automate.sh
+    logs_off_sh_content  = file("${path.module}/logs_off.sh")  # Pass the content of logs_off.sh
+  })
 
   depends_on = [
     module.vpc,
