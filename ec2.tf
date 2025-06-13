@@ -1,5 +1,3 @@
-# ec2.tf
-
 resource "aws_instance" "app_instance" {
   ami                         = "ami-07891c5a242abf4bc" # REMEMBER TO REPLACE THIS WITH YOUR REGION'S UBUNTU AMI ID
   instance_type               = var.instance_type
