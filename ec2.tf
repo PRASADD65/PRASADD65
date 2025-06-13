@@ -1,3 +1,5 @@
+# ec2.tf
+
 resource "aws_instance" "app_instance" {
   ami                         = "ami-07891c5a242abf4bc" # REMEMBER TO REPLACE THIS WITH YOUR REGION'S UBUNTU AMI ID
   instance_type               = var.instance_type
@@ -11,9 +13,11 @@ resource "aws_instance" "app_instance" {
 
   # Use the templatefile function to render the user data script
   user_data = templatefile("${path.module}/user_data.sh.tpl", {
-    # Variables for the template
-    stage                = var.stage # Pass stage to select config file
-    config_file_content  = file("${path.module}/configs/${var.stage}_config") # Pass content of selected config file
+    # All variables interpolated within user_data.sh.tpl must be passed here.
+    repo_url             = var.repo_url
+    s3_bucket_name       = var.s3_bucket_name
+    shutdown_time        = var.shutdown_time
+    stage                = var.stage # Pass stage variable if used within the template
     automate_sh_content  = file("${path.module}/automate.sh") # Pass the content of automate.sh
     logs_off_sh_content  = file("${path.module}/logs_off.sh")  # Pass the content of logs_off.sh
   })
