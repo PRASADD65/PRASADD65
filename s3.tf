@@ -5,11 +5,17 @@
 # -----------------------------------------------------------------------------
 resource "aws_s3_bucket" "app_logs_bucket" {
   bucket = var.s3_bucket_name # Uses the bucket name defined in variable.tf
-  acl    = "private"         # Ensure the bucket is private by default
-
+  # Removed: acl    = "private"
+  
   tags = {
     Name = "${var.stage}-app-logs"
   }
+}
+
+# Explicitly define S3 Bucket ACL
+resource "aws_s3_bucket_acl" "app_logs_bucket_acl" {
+  bucket = aws_s3_bucket.app_logs_bucket.id
+  acl    = "private"
 }
 
 # -----------------------------------------------------------------------------
