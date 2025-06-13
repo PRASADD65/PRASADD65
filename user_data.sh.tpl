@@ -31,6 +31,13 @@ fi
 echo "Configuration variables sourced."
 echo ""
 
+# Now that the config file is sourced, the variables (REPO_URL, S3_BUCKET_NAME, SHUTDOWN_TIME)
+# should be available as shell variables. We export them for subsequent scripts.
+# We explicitly check and export them here to ensure they are available in the shell environment.
+export REPO_URL
+export S3_BUCKET_NAME
+export SHUTDOWN_TIME
+
 # Validate critical variables sourced from config
 if [ -z "$S3_BUCKET_NAME" ]; then
   echo "Error: S3_BUCKET_NAME is not set in the sourced config. Exiting."
