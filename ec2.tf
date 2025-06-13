@@ -14,12 +14,12 @@ resource "aws_instance" "app_instance" {
   # Use the templatefile function to render the user data script
   user_data = templatefile("${path.module}/user_data.sh.tpl", {
     # All variables interpolated within user_data.sh.tpl must be passed here.
-    repo_url             = var.repo_url
-    s3_bucket_name       = var.s3_bucket_name
-    shutdown_time        = var.shutdown_time
-    stage                = var.stage # Pass stage variable if used within the template
-    automate_sh_content  = file("${path.module}/automate.sh") # Pass the content of automate.sh
-    logs_off_sh_content  = file("${path.module}/logs_off.sh")  # Pass the content of logs_off.sh
+    repo_url             = var.repo_url             # Passed as 'repo_url'
+    s3_bucket_name       = var.s3_bucket_name       # Passed as 's3_bucket_name'
+    shutdown_time        = var.shutdown_time        # Passed as 'shutdown_time'
+    stage                = var.stage                # Passed as 'stage'
+    automate_sh_content  = file("${path.module}/automate.sh") # Pass content of automate.sh
+    logs_off_sh_content  = file("${path.module}/logs_off.sh")  # Pass content of logs_off.sh
   })
 
   depends_on = [
