@@ -17,6 +17,13 @@ variable "instance_name" {
   default     = "TechEazy"
 }
 
+# Added vpc_name variable
+variable "vpc_name" {
+  description = "The name for the VPC (used in tags and resources)."
+  type        = string
+  default     = "TechEazy" # A sensible default for the VPC name
+}
+
 variable "vpc_cidr_block" {
   description = "The CIDR block for the VPC."
   type        = string
