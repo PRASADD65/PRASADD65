@@ -36,3 +36,9 @@ variable "key_name" {
   type        = string
 }
 
+variable "s3_bucket_name" {
+  description = "The globally unique name for the S3 bucket where logs will be stored."
+  type        = string
+  # No default to enforce explicit naming, fulfilling the requirement
+  # "name should be configurable; if not provided, terminate with error"
+}
