@@ -1,5 +1,2 @@
-{
-  "env": "production",
-  "debug": false
-}
-
+env=development
+debug=true
