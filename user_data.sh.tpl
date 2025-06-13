@@ -3,7 +3,8 @@
 # user_data.sh.tpl
 # This script is a Terraform template for the EC2 user_data.
 # It orchestrates the setup of the application, log backup, and scheduled shutdown.
-# It sources environment-specific variables from the configs folder.
+# ALL variables referenced with \${...} syntax in this template MUST match the
+# exact lowercase names passed by the 'vars' map in the ec2.tf templatefile call.
 
 # IMPORTANT FIX: Ensure HOME environment variable is set as early as possible
 export HOME=/root
@@ -14,45 +15,21 @@ echo "################################################################"
 echo "# Starting EC2 User Data Script Orchestrator (from template) #"
 echo "################################################################"
 
-# --- 1. Inject Configuration File and Source It ---
-# The 'stage' variable is passed from Terraform to select the correct config file.
-CONFIG_FILE_PATH="/tmp/app_config.env"
-cat << 'APP_CONFIG_EOF' > "$CONFIG_FILE_PATH"
-${config_file_content}
-APP_CONFIG_EOF
+# --- 1. Export Variables for use in this script and subsequent scripts ---
+# Variables passed from ec2.tf (lowercase) are assigned to shell environment (uppercase)
+# These are still interpolated by Terraform, so they use the non-escaped ${} syntax.
+ACTUAL_REPO_URL="${repo_url}"
+ACTUAL_S3_BUCKET_NAME="${s3_bucket_name}"
+ACTUAL_SHUTDOWN_TIME="${shutdown_time}" # This is the full cron string
+ACTUAL_STAGE="${stage}"
 
-if [ -f "$CONFIG_FILE_PATH" ]; then
-    echo "Sourcing configuration from $CONFIG_FILE_PATH"
-    source "$CONFIG_FILE_PATH"
-else
-    echo "Error: Configuration file $CONFIG_FILE_PATH not found. Exiting."
-    exit 1
-fi
-echo "Configuration variables sourced."
-echo ""
+# Now, export these as environment variables that other scripts can use
+export REPO_URL="${ACTUAL_REPO_URL}"
+export S3_BUCKET_NAME="${ACTUAL_S3_BUCKET_NAME}"
+export SHUTDOWN_TIME="${ACTUAL_SHUTDOWN_TIME}"
+export STAGE="${ACTUAL_STAGE}"
 
-# Now that the config file is sourced, the variables (REPO_URL, S3_BUCKET_NAME, SHUTDOWN_TIME)
-# should be available as shell variables. We export them for subsequent scripts.
-# We explicitly check and export them here to ensure they are available in the shell environment.
-export REPO_URL
-export S3_BUCKET_NAME
-export SHUTDOWN_TIME
-
-# Validate critical variables sourced from config
-if [ -z "$S3_BUCKET_NAME" ]; then
-  echo "Error: S3_BUCKET_NAME is not set in the sourced config. Exiting."
-  exit 1
-fi
-if [ -z "$SHUTDOWN_TIME" ]; then
-  echo "Error: SHUTDOWN_TIME is not set in the sourced config. Exiting."
-  exit 1
-fi
-if [ -z "$REPO_URL" ]; then
-  echo "Error: REPO_URL is not set in the sourced config. Exiting."
-  exit 1
-fi
-
-# Derive REPO_DIR_NAME once after REPO_URL is available
+# Derive REPO_DIR_NAME once using the exported REPO_URL
 export REPO_DIR_NAME=$(basename "$REPO_URL" .git)
 
 echo "REPO_URL: ${REPO_URL}"
@@ -60,6 +37,20 @@ echo "S3_BUCKET_NAME: ${S3_BUCKET_NAME}"
 echo "SHUTDOWN_TIME (cron format): ${SHUTDOWN_TIME}"
 echo "REPO_DIR_NAME: ${REPO_DIR_NAME}"
 echo ""
+
+# Validate critical variables now that they are available
+if [ -z "$S3_BUCKET_NAME" ]; then
+  echo "Error: S3_BUCKET_NAME is empty. Exiting."
+  exit 1
+fi
+if [ -z "$SHUTDOWN_TIME" ]; then
+  echo "Error: SHUTDOWN_TIME is empty. Exiting."
+  exit 1
+fi
+if [ -z "$REPO_URL" ]; then
+  echo "Error: REPO_URL is empty. Exiting."
+  exit 1
+fi
 
 # --- 2. Install General Utilities (AWS CLI, Cron) ---
 echo "--- Installing General Utilities (AWS CLI, Cron) ---"
@@ -112,7 +103,7 @@ echo ""
 # --- 5. Setup Cron Job for Log Backup and Shutdown ---
 echo "--- Setting up Cron Job ---"
 
-# Use the full cron expression directly from the sourced config
+# Use the full cron expression directly (already exported as SHUTDOWN_TIME)
 CRON_SCHEDULE="${SHUTDOWN_TIME}"
 
 # The CRON_COMMAND includes the env vars for the logs_off.sh script
